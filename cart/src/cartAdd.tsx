@@ -1,10 +1,9 @@
-type productCode_ = {
-  productCode: string;
-};
+import type { Cart_Data } from "./types";
 
-const cartAdd = ({ productCode }: productCode_) => {
+const cartAdd = ({ productCode, productQuantity }: Cart_Data) => {
+  // code | quantiy
   const addItemToStorage = () => {
-    localStorage.setItem("cart", productCode);
+    localStorage.setItem(productCode, String(productQuantity));
   };
 
   return <button onClick={() => addItemToStorage()}>add</button>;

@@ -74,6 +74,10 @@ const Cart = () => {
     return sum + item.productQuantity * item.productPrice;
   }, 0);
 
+  const sendDataToApi = () => {
+    return console.log(JSON.stringify(cartProducts));
+  };
+
   return (
     <Sheet onOpenChange={(open) => open && refreshCart()}>
       <SheetTrigger asChild>
@@ -107,7 +111,7 @@ const Cart = () => {
         ) : (
           <div>No products</div>
         )}
-        <Button>Checkout</Button>
+        <Button onClick={sendDataToApi}>Checkout</Button>
       </SheetContent>
     </Sheet>
   );

@@ -10,7 +10,7 @@ import ProductVisualizer from "./ProductVisualizer";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <main className="w-full min-h-screen flex flex-col justify-center items-center">
+    <main className="w-full min-h-screen flex flex-col justify-center items-center gap-4">
       {/* products displayer */}
       <div className="grid grid-cols-4 row-auto gap-2">
         {FAKE_PRODUCTS.map(
@@ -25,6 +25,7 @@ createRoot(document.getElementById("root")!).render(
         )}
       </div>
       {/* cart */}
+      <Cart />
     </main>
   </StrictMode>,
 );

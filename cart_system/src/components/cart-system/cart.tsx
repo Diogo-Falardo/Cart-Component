@@ -1,5 +1,6 @@
 import { ShoppingCart, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
@@ -15,6 +16,7 @@ type CartProps = {
 };
 
 const CART_ITEMS_KEY = "cart-items";
+const CART_UPDATED_EVENT = "cart:updated";
 
 const parsePrice = (price: string) =>
   Number.parseFloat(price.replace(/[^0-9.]/g, "")) || 0;
@@ -33,13 +35,23 @@ const readCartIds = () => {
 };
 
 export default function Cart({ products }: CartProps) {
-  const [cartIds, setCartIds] = useState<string[]>([]);
+  const [cartIds, setCartIds] = useState<string[]>(() => readCartIds());
 
   const syncCartFromStorage = () => {
     setCartIds(readCartIds());
   };
 
-  console.log(cartIds);
+  useEffect(() => {
+    const handleCartUpdated = () => syncCartFromStorage();
+
+    window.addEventListener(CART_UPDATED_EVENT, handleCartUpdated);
+    window.addEventListener("storage", handleCartUpdated);
+
+    return () => {
+      window.removeEventListener(CART_UPDATED_EVENT, handleCartUpdated);
+      window.removeEventListener("storage", handleCartUpdated);
+    };
+  }, []);
 
   const cartItems = useMemo(
     () =>
@@ -75,8 +87,24 @@ export default function Cart({ products }: CartProps) {
   return (
     <Popover onOpenChange={(open) => open && syncCartFromStorage()}>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" aria-label="Open cart">
+        <Button
+          id="cart-button"
+          variant="outline"
+          size="icon"
+          aria-label="Open cart"
+          className="relative"
+        >
           <ShoppingCart className="size-4" />
+
+          {cartIds.length > 0 ? (
+            <Badge
+              variant="default"
+              className="absolute -top-2 -right-2 h-5 min-w-5 rounded-full px-1.5"
+              aria-label={`${cartIds.length} items in cart`}
+            >
+              {cartIds.length}
+            </Badge>
+          ) : null}
         </Button>
       </PopoverTrigger>
 

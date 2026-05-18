@@ -3,18 +3,21 @@ import { Button } from "../ui/button";
 
 type AddToCartProps = {
   productId: string;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
 };
 
 const CART_ITEMS_KEY = "cart-items";
+const CART_UPDATED_EVENT = "cart:updated";
 
-export default function AddToCart({ productId }: AddToCartProps) {
-  const handleAddToCart = () => {
+export default function AddToCart({ productId, onClick }: AddToCartProps) {
+  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     /**
      * Try Catch:
      *
      * it tryes to read an existing cart and parse it to an array
      * if fails: creates an new fresh array with the item id
      */
+
     try {
       const rawItems = localStorage.getItem(CART_ITEMS_KEY);
       const items: Array<string> = rawItems ? JSON.parse(rawItems) : [];
@@ -26,6 +29,10 @@ export default function AddToCart({ productId }: AddToCartProps) {
     } catch {
       localStorage.setItem(CART_ITEMS_KEY, JSON.stringify([productId]));
     }
+
+    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT));
+
+    if (onClick) onClick(e);
   };
 
   return (

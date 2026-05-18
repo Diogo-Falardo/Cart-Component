@@ -1,41 +1,38 @@
 # Cart System Component
 
     Using Shadcn for componets
-    Main Files: Cart, Cart Add
+    Main Files: cart.tsx, add-to-cart.tsx
 
 This is just a template you need to upgrade validations functions  
 Template without UI (shadcn default white theme)
 
 # Basic logic
 
-- Receives an item
-- Add the item to a list of items
-- Send the list to an api
+- We have a list of items:
+  - Every item has a button "add-to-cart"
+- Button: "add-to-cart" adds the item id to the localstorage
+- Dialog: "cart" shows the list of items that are in localstorage
 
-#### Data of an item: Name, Price, Quantity, Code.
+#### Data of an item: Id, Name, Price, Image
 
-- Code: is used to store the item in the local storage
+- Id: is used to store the item in the local storage
 
-### FILE : Product Visualizer
+### Button : add-to-cart.tsx
 
-    this file represents one item
+    Imagine that this file represents one item
 
-- in main.tsx its called for every item in json "const"  
-  JSON: FAKE_PRODUCTS
+- In main.tsx its called for every item in the list of items
+- What id does:
+  - Inserts a new array with that item to he localstorage
+    **Or**
+  - Inserts a new id to the array of items already in localstorage
 
-### FILE : Cart Add
-
-    this file is basicly a button.
-
-- receives an id passed on something (ex.: "Displayer")
-- receives the number of items (quantity)
-- adds the id of the item and the corresponding quantity to the LocalStorage
-
-### FILE : Cart
+### Popover : cart.tsx
 
     this file is the cart
-    "sidebar that opens and shows the items and have a checkout button"
+    ONCLICK: "opens and shows the items"
 
-- gets the items stored in the localstorage
-- display them on a sheet ("sidebar")
-- sends the data to an api
+- Only after the onclick: it syncs the products from the localstorage and stores them into a useState(setCartsIds)
+- (cartItems) Use memo will fetch all the products from the products passed from the parameters of the cart and will store on a new array the current product and its index
+- TotalPrice is calculated from the cartItems
+- (removeCartItem) only removes the item by its index

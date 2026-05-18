@@ -1,8 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ShoppingCart } from "lucide-react";
 import "./styles/globals.css";
-import { Button } from "./components/ui/button";
 import {
   Card,
   CardContent,
@@ -10,6 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "./components/ui/card";
+import AddToCart from "./components/cart-system/add-to-cart";
+import Cart from "./components/cart-system/cart";
 
 const products = [
   {
@@ -50,9 +50,7 @@ createRoot(document.getElementById("root")!).render(
       <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center">
         <div className="w-full p-4 sm:p-6 lg:p-8">
           <header className="mb-6 flex items-center justify-end">
-            <Button variant="outline" size="icon" aria-label="Open cart">
-              <ShoppingCart className="size-4" />
-            </Button>
+            <Cart products={products} />
           </header>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -71,6 +69,9 @@ createRoot(document.getElementById("root")!).render(
                     {product.price}
                   </CardDescription>
                 </CardHeader>
+                <CardContent className="flex justify-end px-4">
+                  <AddToCart productId={product.id} />
+                </CardContent>
               </Card>
             ))}
           </div>

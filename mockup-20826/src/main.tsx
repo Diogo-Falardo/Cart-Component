@@ -9,10 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from "./components/ui/card";
-import AddToCart from "./components/cart/add-to-cart";
-import Cart from "./components/cart/cart";
+import AddToCart from "./components/cart/add-to-cart.tsx";
+import Cart from "./components/cart/cart.tsx";
 import { gsap } from "gsap";
-import { products } from "./lib/data";
+import { products } from "./data/products.db.table";
 
 function handleAddToCartClick(
   event: MouseEvent<HTMLButtonElement>,
@@ -69,7 +69,7 @@ createRoot(document.getElementById("root")!).render(
       <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-6xl items-center">
         <div className="w-full p-4 sm:p-6 lg:p-8">
           <header className="mb-6 flex items-center justify-end">
-            <Cart products={products} />
+            <Cart />
           </header>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

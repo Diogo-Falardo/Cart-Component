@@ -1,5 +1,5 @@
 import { Minus, Plus, ShoppingCart, Trash2 } from "lucide-react";
-import { useEffect, useState, type PointerEvent } from "react";
+import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -12,8 +12,10 @@ import {
   SheetTrigger,
 } from "../ui/sheet";
 import {
+  CART_BUTTON_ID,
   CART_UPDATED_EVENT,
   addProductsToCart,
+  attachCartResize,
   getGroupedCartProducts,
   removeAllProductsFromCart,
   removeProductsFromCart,
@@ -62,6 +64,9 @@ export default function Cart() {
   const [open, setOpen] = useState(false);
   const [groups, setGroups] = useState(() => getGroupedCartProducts());
   const [panelSize, setPanelSize] = useState(() => defaultPanelSize(isDesktop));
+  const panelRef = useRef<HTMLDivElement>(null);
+  const sizeRef = useRef(panelSize);
+  const resizeRef = useRef<ReturnType<typeof attachCartResize> | null>(null);
 
   const syncCart = () => {
     setGroups(getGroupedCartProducts());
@@ -80,8 +85,35 @@ export default function Cart() {
   }, []);
 
   useEffect(() => {
-    setPanelSize(defaultPanelSize(isDesktop));
+    const nextSize = defaultPanelSize(isDesktop);
+    sizeRef.current = nextSize;
+    setPanelSize(nextSize);
+    resizeRef.current?.to(nextSize);
   }, [isDesktop]);
+
+  useEffect(() => {
+    if (!open) {
+      resizeRef.current?.kill();
+      resizeRef.current = null;
+      return;
+    }
+
+    const panel = panelRef.current;
+    if (!panel) {
+      return;
+    }
+
+    const resize = attachCartResize(panel, isDesktop ? "x" : "y");
+    resize.set(sizeRef.current);
+    resizeRef.current = resize;
+
+    return () => {
+      resize.kill();
+      if (resizeRef.current === resize) {
+        resizeRef.current = null;
+      }
+    };
+  }, [open, isDesktop]);
 
   const unitCount = groups.reduce((sum, group) => sum + group.quantity, 0);
   const totalPrice = groups.reduce(
@@ -106,34 +138,52 @@ export default function Cart() {
     removeAllProductsFromCart(productId);
   };
 
+  const resizeBounds = () => {
+    if (isDesktop) {
+      return {
+        min: DESKTOP_MIN_WIDTH,
+        max: Math.min(640, window.innerWidth - 16),
+      };
+    }
+
+    return {
+      min: Math.min(280, window.innerHeight * 0.4),
+      max: window.innerHeight * 0.92,
+    };
+  };
+
+  const applyPanelSize = (nextSize: number, immediate = false) => {
+    const { min, max } = resizeBounds();
+    const size = clamp(nextSize, min, max);
+    sizeRef.current = size;
+    if (immediate) {
+      resizeRef.current?.set(size);
+    } else {
+      resizeRef.current?.to(size);
+    }
+    return size;
+  };
+
   const onResizePointerDown = (event: PointerEvent<HTMLDivElement>) => {
     event.preventDefault();
 
     const handle = event.currentTarget;
     const pointerId = event.pointerId;
     const start = isDesktop ? event.clientX : event.clientY;
-    const startSize = panelSize;
+    const startSize = sizeRef.current;
 
     handle.setPointerCapture(pointerId);
 
-    const onMove = (moveEvent: PointerEvent) => {
-      if (isDesktop) {
-        const maxWidth = Math.min(640, window.innerWidth - 16);
-        setPanelSize(
-          clamp(startSize + (start - moveEvent.clientX), DESKTOP_MIN_WIDTH, maxWidth),
-        );
-        return;
-      }
-
-      const maxHeight = window.innerHeight * 0.92;
-      const minHeight = Math.min(280, window.innerHeight * 0.4);
-      setPanelSize(
-        clamp(startSize + (start - moveEvent.clientY), minHeight, maxHeight),
-      );
+    const onMove = (moveEvent: globalThis.PointerEvent) => {
+      const delta = isDesktop
+        ? start - moveEvent.clientX
+        : start - moveEvent.clientY;
+      applyPanelSize(startSize + delta, true);
     };
 
     const onUp = () => {
       handle.releasePointerCapture(pointerId);
+      setPanelSize(sizeRef.current);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
@@ -154,7 +204,7 @@ export default function Cart() {
     >
       <SheetTrigger asChild>
         <Button
-          id="cart-button"
+          id={CART_BUTTON_ID}
           variant="outline"
           size="icon"
           aria-label="Open cart"
@@ -175,6 +225,7 @@ export default function Cart() {
       </SheetTrigger>
 
       <SheetContent
+        ref={panelRef}
         side={isDesktop ? "right" : "bottom"}
         showCloseButton={false}
         style={
@@ -199,20 +250,12 @@ export default function Cart() {
             if (isDesktop && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
               event.preventDefault();
               const delta = event.key === "ArrowLeft" ? step : -step;
-              setPanelSize((size) =>
-                clamp(size + delta, DESKTOP_MIN_WIDTH, Math.min(640, window.innerWidth - 16)),
-              );
+              setPanelSize(applyPanelSize(sizeRef.current + delta));
             }
             if (!isDesktop && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
               event.preventDefault();
               const delta = event.key === "ArrowUp" ? step : -step;
-              setPanelSize((size) =>
-                clamp(
-                  size + delta,
-                  Math.min(280, window.innerHeight * 0.4),
-                  window.innerHeight * 0.92,
-                ),
-              );
+              setPanelSize(applyPanelSize(sizeRef.current + delta));
             }
           }}
           className={

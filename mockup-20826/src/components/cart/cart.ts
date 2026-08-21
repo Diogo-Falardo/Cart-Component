@@ -1,7 +1,13 @@
+import { gsap } from "gsap";
 import { products } from "../../data/products.db.table";
 
 const CART_ITEMS_KEY = "cart-items";
 export const CART_UPDATED_EVENT = "cart:updated";
+export const CART_BUTTON_ID = "cart-button";
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 type Product = (typeof products)[number];
 export type CartProduct = Product & { cartIndex: number };
@@ -117,5 +123,164 @@ export function removeAllProductsFromCart(productId: string) {
   backupCart();
   notifyCartUpdated();
   return cartCache;
+}
+
+function pulseCartButton(cartButton: HTMLElement) {
+  gsap.killTweensOf(cartButton);
+  gsap.fromTo(
+    cartButton,
+    { scale: 1 },
+    {
+      scale: 1.1,
+      duration: 0.14,
+      ease: "power2.out",
+      yoyo: true,
+      repeat: 1,
+      overwrite: "auto",
+    },
+  );
+
+  const badge = cartButton.querySelector("[data-slot=badge]");
+  if (badge) {
+    gsap.fromTo(
+      badge,
+      { scale: 1 },
+      {
+        scale: 1.16,
+        duration: 0.12,
+        ease: "power2.out",
+        yoyo: true,
+        repeat: 1,
+        overwrite: "auto",
+      },
+    );
+  }
+}
+
+export function animateAddToCart(source: HTMLElement) {
+  const cartButton = document.getElementById(CART_BUTTON_ID);
+  if (!cartButton) {
+    return;
+  }
+
+  if (prefersReducedMotion()) {
+    pulseCartButton(cartButton);
+    return;
+  }
+
+  const fromRect = source.getBoundingClientRect();
+  const toRect = cartButton.getBoundingClientRect();
+  const size = 14;
+  const fromX = fromRect.left + fromRect.width / 2 - size / 2;
+  const fromY = fromRect.top + fromRect.height / 2 - size / 2;
+  const toX = toRect.left + toRect.width / 2 - size / 2;
+  const toY = toRect.top + toRect.height / 2 - size / 2;
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+
+  const flyer = document.createElement("div");
+  flyer.setAttribute("aria-hidden", "true");
+  flyer.className = "pointer-events-none fixed rounded-md border bg-primary";
+  flyer.style.cssText = `width:${size}px;height:${size}px;left:${fromX}px;top:${fromY}px;z-index:80;will-change:transform,opacity`;
+  document.body.appendChild(flyer);
+
+  gsap.set(flyer, { x: 0, y: 0, scale: 0.55, autoAlpha: 0, force3D: true });
+
+  const timeline = gsap.timeline({
+    onComplete: () => {
+      flyer.style.willChange = "";
+      flyer.remove();
+    },
+  });
+
+  timeline
+    .to(flyer, {
+      scale: 1.08,
+      autoAlpha: 1,
+      duration: 0.1,
+      ease: "power2.out",
+    })
+    .to(flyer, {
+      x: dx * 0.38,
+      y: dy * 0.12 - 28,
+      duration: 0.16,
+      ease: "power2.out",
+    })
+    .to(flyer, {
+      x: dx,
+      y: dy,
+      scale: 0.22,
+      duration: 0.28,
+      ease: "power3.in",
+    })
+    .to(
+      flyer,
+      {
+        autoAlpha: 0,
+        scale: 0.08,
+        duration: 0.1,
+        ease: "power2.in",
+      },
+      "-=0.06",
+    )
+    .add(() => pulseCartButton(cartButton), "-=0.14");
+}
+
+export function handleAddToCartClick(
+  event: { currentTarget: EventTarget | null },
+  productId: string,
+) {
+  addProductsToCart(productId);
+
+  const source = event.currentTarget;
+  if (!(source instanceof HTMLElement)) {
+    return;
+  }
+
+  gsap.fromTo(
+    source,
+    { scale: 1 },
+    {
+      scale: 0.94,
+      duration: 0.08,
+      ease: "power1.out",
+      yoyo: true,
+      repeat: 1,
+      overwrite: "auto",
+    },
+  );
+
+  animateAddToCart(source);
+}
+
+export function attachCartResize(element: HTMLElement, axis: "x" | "y") {
+  const property = axis === "x" ? "width" : "height";
+  const reduced = prefersReducedMotion();
+  const follow = reduced
+    ? (value: number) => {
+        gsap.set(element, { [property]: value });
+      }
+    : gsap.quickTo(element, property, {
+        duration: 0.18,
+        ease: "power3.out",
+        overwrite: true,
+      });
+
+  return {
+    set(value: number) {
+      follow(value);
+    },
+    to(value: number) {
+      gsap.to(element, {
+        [property]: value,
+        duration: reduced ? 0 : 0.28,
+        ease: "power3.out",
+        overwrite: true,
+      });
+    },
+    kill() {
+      gsap.killTweensOf(element);
+    },
+  };
 }
 
